@@ -25,8 +25,11 @@ while cap.isOpened():
     results = hands.process(rgb_frame)
 
     total_fingers = 0
-    if results.multi_hand_landmarks:
-        for hand_landmarks in results.multi_hand_landmarks:
+    if results.multi_hand_landmarks and results.multi_handedness:
+        for i, hand_landmarks in enumerate(results.multi_hand_landmarks):
+            # Get hand type (Left or Right)
+            hand_type = results.multi_handedness[i].classification[0].label
+
             # Draw landmarks
             mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
@@ -36,18 +39,13 @@ while cap.isOpened():
             # Count fingers for each hand
             fingers = []
             for tip in FINGER_TIPS:
-                # Thumb case (horizontal check)
-                if tip == 4:
-                    if landmarks[tip].x < landmarks[tip - 1].x:
-                        fingers.append(1)
-                    else:
-                        fingers.append(0)
+                if tip == 4:  # Thumb case
+                    if hand_type == "Right":  # Check normal way for right hand
+                        fingers.append(1 if landmarks[tip].x < landmarks[tip - 1].x else 0)
+                    else:  # Invert check for left hand
+                        fingers.append(1 if landmarks[tip].x > landmarks[tip - 1].x else 0)
                 else:
-                    # Other fingers (vertical check)
-                    if landmarks[tip].y < landmarks[tip - 2].y:
-                        fingers.append(1)
-                    else:
-                        fingers.append(0)
+                    fingers.append(1 if landmarks[tip].y < landmarks[tip - 2].y else 0)
 
             total_fingers += fingers.count(1)  # Add finger count for each hand
 
