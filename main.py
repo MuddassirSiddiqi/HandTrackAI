@@ -4,7 +4,7 @@ import mediapipe as mp
 # Initialize Mediapipe Hands model
 mp_hands = mp.solutions.hands
 mp_draw = mp.solutions.drawing_utils
-hands = mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.7)
+hands = mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.7, max_num_hands=2)
 
 # Define finger tip landmarks
 FINGER_TIPS = [4, 8, 12, 16, 20]
@@ -24,7 +24,7 @@ while cap.isOpened():
     # Process frame with Mediapipe
     results = hands.process(rgb_frame)
 
-    finger_count = 0
+    total_fingers = 0
     if results.multi_hand_landmarks:
         for hand_landmarks in results.multi_hand_landmarks:
             # Draw landmarks
@@ -33,25 +33,26 @@ while cap.isOpened():
             # Get landmark positions
             landmarks = hand_landmarks.landmark
 
-            # Count fingers
+            # Count fingers for each hand
             fingers = []
             for tip in FINGER_TIPS:
-                # Check if tip is above the lower joint
-                if tip == 4:  # Thumb case (horizontal check)
+                # Thumb case (horizontal check)
+                if tip == 4:
                     if landmarks[tip].x < landmarks[tip - 1].x:
                         fingers.append(1)
                     else:
                         fingers.append(0)
                 else:
+                    # Other fingers (vertical check)
                     if landmarks[tip].y < landmarks[tip - 2].y:
                         fingers.append(1)
                     else:
                         fingers.append(0)
 
-            finger_count = fingers.count(1)
+            total_fingers += fingers.count(1)  # Add finger count for each hand
 
-    # Display finger count on screen
-    cv2.putText(frame, f'Fingers: {finger_count}', (50, 100),
+    # Display total finger count
+    cv2.putText(frame, f'Fingers: {total_fingers}', (50, 100),
                 cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
 
     cv2.imshow("HandTrackAI - Finger Counter", frame)
